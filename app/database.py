@@ -129,6 +129,15 @@ def delete_issue(issue_id):
     conn.commit()
     conn.close()
 
+def update_issue_details(issue_id, steps, expected, actual):
+    conn = get_connection()
+    conn.execute('''UPDATE issues 
+                    SET steps_to_reproduce = ?, expected_result = ?, actual_result = ?, updated_at = ? 
+                    WHERE id = ?''', 
+                 (steps, expected, actual, datetime.datetime.now(), issue_id))
+    conn.commit()
+    conn.close()
+
 # --- Comments ---
 def add_comment(issue_id, username, comment):
     conn = get_connection()

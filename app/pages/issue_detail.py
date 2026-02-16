@@ -32,9 +32,32 @@ with col1:
     st.write(issue['description'])
     
     with st.expander("Details (Steps, Expected, Actual)", expanded=False):
-        st.markdown(f"**Steps to Reproduce:**\n{issue['steps_to_reproduce'] or 'N/A'}")
-        st.markdown(f"**Expected Result:**\n{issue['expected_result'] or 'N/A'}")
-        st.markdown(f"**Actual Result:**\n{issue['actual_result'] or 'N/A'}")
+        # Edit Mode Toggle
+        if "edit_mode" not in st.session_state:
+            st.session_state["edit_mode"] = False
+            
+        if st.checkbox("Enable Editing", value=st.session_state["edit_mode"]):
+            st.session_state["edit_mode"] = True
+        else:
+            st.session_state["edit_mode"] = False
+            
+        if st.session_state["edit_mode"]:
+            from database import update_issue_details
+            
+            with st.form("edit_details_form"):
+                new_steps = st.text_area("Steps to Reproduce", value=issue['steps_to_reproduce'] or "")
+                new_expected = st.text_area("Expected Result", value=issue['expected_result'] or "")
+                new_actual = st.text_area("Actual Result", value=issue['actual_result'] or "")
+                
+                if st.form_submit_button("Save Changes"):
+                    update_issue_details(issue_id, new_steps, new_expected, new_actual)
+                    st.success("Details updated!")
+                    st.session_state["edit_mode"] = False
+                    st.rerun()
+        else:
+            st.markdown(f"**Steps to Reproduce:**\n{issue['steps_to_reproduce'] or 'N/A'}")
+            st.markdown(f"**Expected Result:**\n{issue['expected_result'] or 'N/A'}")
+            st.markdown(f"**Actual Result:**\n{issue['actual_result'] or 'N/A'}")
 
     st.subheader("Attachments")
     if issue['file_paths']:
