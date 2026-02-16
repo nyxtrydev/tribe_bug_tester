@@ -107,6 +107,17 @@ with col2:
     st.info(f"**Issue Type:** {issue['issue_type']}")
     st.info(f"**Screen:** {issue['screen_name']}")
 
+    if issue['test_username'] or issue['test_email']:
+        st.divider()
+        st.subheader("🔐 Test Credentials")
+        if issue['test_username']:
+            st.text(f"Username: {issue['test_username']}")
+        if issue['test_password']:
+            st.text(f"Password: {issue['test_password']}")
+        if issue['test_email']:
+            st.text(f"Email:    {issue['test_email']}")
+
+
     st.divider()
     st.subheader("🤖 Auto-Test Results")
     results = get_auto_test_results(issue_id)

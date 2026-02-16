@@ -37,8 +37,20 @@ def init_db():
                     status TEXT DEFAULT 'Open',
                     created_at TIMESTAMP,
                     updated_at TIMESTAMP,
-                    file_paths TEXT
+                    file_paths TEXT,
+                    test_username TEXT,
+                    test_password TEXT,
+                    test_email TEXT
                 )''')
+
+    # Migration for new columns (safe-ish for dev)
+    try:
+        c.execute("ALTER TABLE issues ADD COLUMN test_username TEXT")
+        c.execute("ALTER TABLE issues ADD COLUMN test_password TEXT")
+        c.execute("ALTER TABLE issues ADD COLUMN test_email TEXT")
+        print("Migrated issues table with test credentials columns.")
+    except sqlite3.OperationalError:
+        pass # Columns likely exist
 
     # Comments Table
     c.execute('''CREATE TABLE IF NOT EXISTS comments (
@@ -79,13 +91,14 @@ def create_issue(issue_data):
     c = conn.cursor()
     c.execute('''INSERT INTO issues (id, submitter, account_type, issue_type, screen_name, title, description, 
                                      steps_to_reproduce, expected_result, actual_result, severity, status, 
-                                     created_at, updated_at, file_paths)
-                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)''',
+                                     created_at, updated_at, file_paths, test_username, test_password, test_email)
+                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)''',
               (issue_data['id'], issue_data['submitter'], issue_data['account_type'], issue_data['issue_type'],
                issue_data['screen_name'], issue_data['title'], issue_data['description'], 
                issue_data.get('steps_to_reproduce'), issue_data.get('expected_result'), issue_data.get('actual_result'),
                issue_data['severity'], 'Open', datetime.datetime.now(), datetime.datetime.now(), 
-               issue_data.get('file_paths')))
+               issue_data.get('file_paths'),
+               issue_data.get('test_username'), issue_data.get('test_password'), issue_data.get('test_email')))
     conn.commit()
     conn.close()
 

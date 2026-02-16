@@ -30,6 +30,15 @@ with st.form("issue_form", clear_on_submit=True):
     expected = st.text_area("Expected Result (Optional)")
     actual = st.text_area("Actual Result (Optional)")
     
+    st.subheader("Test Credentials (Optional)")
+    c1, c2, c3 = st.columns(3)
+    with c1:
+        test_user = st.text_input("Test Username")
+    with c2:
+        test_pass = st.text_input("Test Password")
+    with c3:
+        test_email = st.text_input("Test Email")
+    
     uploaded_files = st.file_uploader("Upload Screenshots/Designs/Recordings", accept_multiple_files=True)
     
     submitted = st.form_submit_button("Submit Issue")
@@ -68,7 +77,11 @@ with st.form("issue_form", clear_on_submit=True):
                 "expected_result": expected,
                 "actual_result": actual,
                 "severity": severity,
-                "file_paths": ",".join(saved_file_paths)
+                "severity": severity,
+                "file_paths": ",".join(saved_file_paths),
+                "test_username": test_user,
+                "test_password": test_pass,
+                "test_email": test_email
             }
             
             create_issue(issue_data)
