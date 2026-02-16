@@ -2,7 +2,9 @@ import streamlit as st
 import os
 import uuid
 import datetime
-from database import create_issue, save_auto_test_results
+import uuid
+import datetime
+from database import create_issue, save_auto_test_results, get_recent_test_credentials
 from auto_tests import run_diagnostics
 
 st.set_page_config(page_title="Submit Issue", page_icon="📝", layout="wide")
@@ -31,13 +33,35 @@ with st.form("issue_form", clear_on_submit=True):
     actual = st.text_area("Actual Result (Optional)")
     
     st.subheader("Test Credentials (Optional)")
+    
+    # Quick Fill Logic
+    recent_creds = get_recent_test_credentials()
+    recent_options = ["None (Type New)"] + [f"{c['test_username']} / {c['test_password']}" for c in recent_creds]
+    
+    # We use session state to populate the fields if a selection is made
+    # But text_input defaults only work on first render or re-render. 
+    # To make it dynamic, we can use an on_change handler or just check the value of the selectbox.
+    
+    selected_cred_str = st.selectbox("⚡ Quick Fill from Recent", recent_options)
+    
+    default_user, default_pass, default_email = "", "", ""
+    if selected_cred_str != "None (Type New)":
+        # Find the matching credential object
+        for c in recent_creds:
+            if f"{c['test_username']} / {c['test_password']}" == selected_cred_str:
+                default_user = c['test_username']
+                default_pass = c['test_password']
+                default_email = c['test_email']
+                break
+    
     c1, c2, c3 = st.columns(3)
     with c1:
-        test_user = st.text_input("Test Username")
+        test_user = st.text_input("Test Username", value=default_user)
     with c2:
-        test_pass = st.text_input("Test Password")
+        test_pass = st.text_input("Test Password", value=default_pass)
     with c3:
-        test_email = st.text_input("Test Email")
+        test_email = st.text_input("Test Email", value=default_email)
+    
     
     uploaded_files = st.file_uploader("Upload Screenshots/Designs/Recordings", accept_multiple_files=True)
     

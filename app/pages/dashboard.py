@@ -45,21 +45,23 @@ else:
     st.divider()
 
     # Display Table
-    st.dataframe(
+    # Display Table with Selection
+    st.info("👆 Click on a row to view details.")
+    
+    event = st.dataframe(
         filtered_df[['id', 'title', 'severity', 'status', 'submitter', 'created_at']],
         use_container_width=True,
         hide_index=True,
+        on_select="rerun",
+        selection_mode="single-row",
         column_config={
             "created_at": st.column_config.DatetimeColumn("Created At", format="D MMM YYYY, h:mm a")
         }
     )
 
-    st.divider()
-    
-    st.subheader("Select Issue to View Details")
-    issue_id_to_view = st.selectbox("Choose Issue ID", filtered_df['id'])
-    
-    if st.button("View Details"):
-        st.session_state['selected_issue_id'] = issue_id_to_view
+    if event.selection.rows:
+        selected_index = event.selection.rows[0]
+        selected_issue_id = filtered_df.iloc[selected_index]['id']
+        st.session_state['selected_issue_id'] = selected_issue_id
         st.switch_page("pages/issue_detail.py")
 

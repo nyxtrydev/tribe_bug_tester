@@ -175,3 +175,19 @@ def get_user(username):
     user = conn.execute("SELECT * FROM users WHERE username = ?", (username,)).fetchone()
     conn.close()
     return user
+
+# --- Helpers ---
+def get_recent_test_credentials():
+    conn = get_connection()
+    # Get distinct sets of credentials used recently
+    query = '''
+        SELECT test_username, test_password, test_email, MAX(created_at) as last_used 
+        FROM issues 
+        WHERE test_username IS NOT NULL AND test_username != ''
+        GROUP BY test_username, test_password, test_email 
+        ORDER BY last_used DESC 
+        LIMIT 5
+    '''
+    creds = conn.execute(query).fetchall()
+    conn.close()
+    return creds
