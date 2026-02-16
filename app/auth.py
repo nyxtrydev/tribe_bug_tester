@@ -52,29 +52,29 @@ def try_auto_login():
 def apply_custom_style():
     st.markdown("""
         <style>
-            /* Hide Streamlit Toolbar items (Menu, Share, etc.) */
-            div[data-testid="stToolbar"] {
-                display: none !important;
+            /* Hide the right-side Streamlit menu button by its aria-label */
+            button[aria-label="Manage app"], 
+            button[data-testid="stToolbar"] { 
+                display: none !important; 
             }
             
-            /* Hide the decoration line at the top */
-            div[data-testid="stDecoration"] {
-                display: none !important;
+            /* Keep the left-side sidebar toggle button visible */
+            button[aria-label="View sidebar"], 
+            [data-testid="stSidebarCollapsedControl"] { 
+                display: block !important; 
+                visibility: visible !important; 
             }
             
-            /* Hide the footer */
-            footer {
-                display: none !important;
+            /* Hide the footer and top decoration line */
+            footer, [data-testid="stDecoration"] { 
+                display: none !important; 
             }
             
-            /* Ensure the sidebar toggle (hamburger) is visible and accessible */
-            button[kind="header"] {
+            /* Reset header to be transparent and visible so buttons show */
+            header[data-testid="stHeader"] {
+                background: rgba(0,0,0,0) !important;
                 visibility: visible !important;
-            }
-            
-            /* Make sure sidebar itself is not hidden */
-            section[data-testid="stSidebar"] {
-                visibility: visible !important;
+                display: block !important;
             }
         </style>
         """, unsafe_allow_html=True)
