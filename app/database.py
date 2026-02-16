@@ -18,8 +18,6 @@ def init_db():
     c.execute('''CREATE TABLE IF NOT EXISTS users (
                     username TEXT PRIMARY KEY,
                     password_hash TEXT NOT NULL,
-                    username TEXT PRIMARY KEY,
-                    password_hash TEXT NOT NULL,
                     role TEXT NOT NULL,
                     is_approved BOOLEAN DEFAULT 0
                 )''')
@@ -103,7 +101,6 @@ def init_db():
         print("Super Admin updated.")
 
     conn.commit()
-    # conn.close() - Removed to keep connection open for next table
 
     # Design Requests Table
     c.execute('''CREATE TABLE IF NOT EXISTS design_requests (
@@ -128,8 +125,6 @@ def init_db():
         pass 
 
     conn.commit()
-    # conn.close() - Removed to keep connection open for next table
-
     conn.close()
 
 
@@ -171,6 +166,12 @@ def update_design_request_details(req_id, notes, priority, file_paths, reference
                     SET notes = ?, priority = ?, file_paths = ?, reference_img_paths = ?, updated_at = ? 
                     WHERE id = ?''', 
                  (notes, priority, file_paths, reference_img_paths, datetime.datetime.now(), req_id))
+    conn.commit()
+    conn.close()
+
+def delete_design_request(req_id):
+    conn = get_connection()
+    conn.execute("DELETE FROM design_requests WHERE id = ?", (req_id,))
     conn.commit()
     conn.close()
 

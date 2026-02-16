@@ -28,6 +28,8 @@ def login_user(username, password, cookie_manager):
 
 def try_auto_login():
     """Checks for auth_token cookie and logs user in if valid."""
+    apply_custom_style()
+    
     if "logged_in" not in st.session_state:
         st.session_state["logged_in"] = False
         st.session_state["user"] = None
@@ -46,6 +48,16 @@ def try_auto_login():
                 # return True to indicate successful auto-login
                 return True
     return False
+
+def apply_custom_style():
+    st.markdown("""
+        <style>
+            #MainMenu {visibility: hidden;}
+            footer {visibility: hidden;}
+            header {visibility: hidden;}
+            [data-testid="stDecoration"] {visibility: hidden;}
+        </style>
+        """, unsafe_allow_html=True)
 
 def register_user(username, password, role):
     if get_user(username):
