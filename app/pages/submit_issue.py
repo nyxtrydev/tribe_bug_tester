@@ -113,9 +113,8 @@ with st.form("issue_form", clear_on_submit=True):
             
             st.success(f"Issue {issue_id} submitted successfully!")
             
-            # Force clear the select box for next run
-            if "quick_fill_key" in st.session_state:
-                st.session_state["quick_fill_key"] = "None (Type New)"
+            # Optional: If you want to force clear the select box for next run
+            # st.session_state["quick_fill_key"] = "None (Type New)" # Cause Crash
             
             # Show diagnostic feedback immediately
             with st.expander("Auto-Test Diagnostics Report", expanded=True):
