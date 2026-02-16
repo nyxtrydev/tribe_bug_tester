@@ -18,8 +18,18 @@ def init_db():
     c.execute('''CREATE TABLE IF NOT EXISTS users (
                     username TEXT PRIMARY KEY,
                     password_hash TEXT NOT NULL,
-                    role TEXT NOT NULL
+                    username TEXT PRIMARY KEY,
+                    password_hash TEXT NOT NULL,
+                    role TEXT NOT NULL,
+                    is_approved BOOLEAN DEFAULT 0
                 )''')
+
+    # Migration for is_approved
+    try:
+        c.execute("ALTER TABLE users ADD COLUMN is_approved BOOLEAN DEFAULT 0")
+        print("Migrated users table with is_approved column.")
+    except sqlite3.OperationalError:
+        pass # Column likely exists
 
     # Issues Table
     c.execute('''CREATE TABLE IF NOT EXISTS issues (
@@ -74,13 +84,23 @@ def init_db():
 
 
     # Create Super Admin (abhiraman)
+    # Create Super Admin (abhiraman) - Updated Password
     c.execute("SELECT * FROM users WHERE username = 'abhiraman'")
-    if not c.fetchone():
-        password = "123456@".encode('utf-8')
+    row = c.fetchone()
+    if not row:
+        password = "Tribe#123#@".encode('utf-8')
         hashed = bcrypt.hashpw(password, bcrypt.gensalt()).decode('utf-8')
-        c.execute("INSERT INTO users (username, password_hash, role) VALUES (?, ?, ?)", 
-                  ("abhiraman", hashed, "Admin"))
+        c.execute("INSERT INTO users (username, password_hash, role, is_approved) VALUES (?, ?, ?, ?)", 
+                  ("abhiraman", hashed, "Admin", 1))
         print("Super Admin created: abhiraman")
+    else:
+        # Update existing super admin to be approved and have new password if needed
+        # We'll just ensure they are approved. Password update might require manual intervention 
+        # or we force update it here. Let's force update for this request.
+        password = "Tribe#123#@".encode('utf-8')
+        hashed = bcrypt.hashpw(password, bcrypt.gensalt()).decode('utf-8')
+        c.execute("UPDATE users SET is_approved = 1, password_hash = ? WHERE username = 'abhiraman'", (hashed,))
+        print("Super Admin updated.")
 
     conn.commit()
     conn.close()
@@ -167,11 +187,11 @@ def get_auto_test_results(issue_id):
     return result
 
 # --- Users ---
-def create_user(username, password_hash, role):
+def create_user(username, password_hash, role, is_approved=False):
     conn = get_connection()
     try:
-        conn.execute("INSERT INTO users (username, password_hash, role) VALUES (?, ?, ?)", 
-                     (username, password_hash, role))
+        conn.execute("INSERT INTO users (username, password_hash, role, is_approved) VALUES (?, ?, ?, ?)", 
+                     (username, password_hash, role, is_approved))
         conn.commit()
         return True
     except sqlite3.IntegrityError:
@@ -184,6 +204,18 @@ def get_user(username):
     user = conn.execute("SELECT * FROM users WHERE username = ?", (username,)).fetchone()
     conn.close()
     return user
+
+def get_pending_users():
+    conn = get_connection()
+    users = conn.execute("SELECT * FROM users WHERE is_approved = 0").fetchall()
+    conn.close()
+    return users
+
+def approve_user(username):
+    conn = get_connection()
+    conn.execute("UPDATE users SET is_approved = 1 WHERE username = ?", (username,))
+    conn.commit()
+    conn.close()
 
 # --- Helpers ---
 def get_recent_test_credentials():

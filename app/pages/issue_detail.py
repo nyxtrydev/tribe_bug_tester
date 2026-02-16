@@ -1,6 +1,7 @@
 import streamlit as st
 import os
-from database import get_issue_by_id, get_auto_test_results, add_comment, get_comments, update_status, delete_issue
+from database import get_issue_by_id, get_auto_test_results, add_comment, get_comments, update_status, delete_issue, save_auto_test_results
+from auto_tests import run_diagnostics
 
 
 st.set_page_config(page_title="Issue Details", page_icon="📄", layout="wide")
@@ -51,7 +52,19 @@ with col1:
                 
                 if st.form_submit_button("Save Changes"):
                     update_issue_details(issue_id, new_steps, new_expected, new_actual)
-                    st.success("Details updated!")
+                    
+                    # Re-run diagnostics
+                    diagnostics = run_diagnostics(
+                        issue['title'], 
+                        issue['description'], 
+                        new_steps, 
+                        new_expected, 
+                        new_actual, 
+                        issue['file_paths'].split(',') if issue['file_paths'] else []
+                    )
+                    save_auto_test_results(issue_id, diagnostics)
+                    
+                    st.success("Details updated and re-diagnosed!")
                     st.session_state["edit_mode"] = False
                     st.rerun()
         else:

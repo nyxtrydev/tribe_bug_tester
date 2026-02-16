@@ -42,7 +42,7 @@ with st.form("issue_form", clear_on_submit=True):
     # But text_input defaults only work on first render or re-render. 
     # To make it dynamic, we can use an on_change handler or just check the value of the selectbox.
     
-    selected_cred_str = st.selectbox("⚡ Quick Fill from Recent", recent_options)
+    selected_cred_str = st.selectbox("⚡ Quick Fill from Recent", recent_options, key="quick_fill_key")
     
     default_user, default_pass, default_email = "", "", ""
     if selected_cred_str != "None (Type New)":
@@ -112,7 +112,10 @@ with st.form("issue_form", clear_on_submit=True):
             save_auto_test_results(issue_id, diagnostics)
             
             st.success(f"Issue {issue_id} submitted successfully!")
-            st.balloons()
+            
+            # Force clear the select box for next run
+            if "quick_fill_key" in st.session_state:
+                st.session_state["quick_fill_key"] = "None (Type New)"
             
             # Show diagnostic feedback immediately
             with st.expander("Auto-Test Diagnostics Report", expanded=True):

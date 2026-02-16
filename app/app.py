@@ -24,7 +24,7 @@ def login_page():
         password = st.text_input("Password", type="password", key="login_pass")
         
         if st.button("Login"):
-            user = login_user(username, password)
+            user, error = login_user(username, password)
             if user:
                 st.session_state["logged_in"] = True
                 st.session_state["user"] = user['username']
@@ -32,7 +32,7 @@ def login_page():
                 st.success("Logged in successfully!")
                 st.rerun()
             else:
-                st.error("Invalid username or password")
+                st.error(error)
         
 
                 
