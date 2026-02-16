@@ -1,0 +1,18 @@
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Streamlit
+.streamlit/
+*.ckpt
+*.norm
+
+# App Data (Local dev only)
+app/database.db
+app/uploads/
+
+# Environment
+.env
+venv/
