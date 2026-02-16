@@ -1,8 +1,10 @@
 import streamlit as st
 from database import get_pending_users, approve_user
-from auth import admin_create_user
+from auth import admin_create_user, try_auto_login
 
 st.set_page_config(page_title="Admin Panel", page_icon="🛡️", layout="wide")
+
+try_auto_login()
 
 if "logged_in" not in st.session_state or not st.session_state["logged_in"]:
     st.warning("Please log in to access this page.")

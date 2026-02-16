@@ -1,6 +1,7 @@
 import streamlit as st
+import time
 from database import init_db
-from auth import login_user, logout, register_user
+from auth import login_user, logout, register_user, get_manager, get_user, try_auto_login
 
 st.set_page_config(page_title="QA Issue Tracker", page_icon="🐞", layout="wide")
 
@@ -13,6 +14,15 @@ if "logged_in" not in st.session_state:
     st.session_state["user"] = None
     st.session_state["role"] = None
 
+from auth import get_manager, get_user, try_auto_login
+
+# Initialize Cookie Manager
+cookie_manager = get_manager()
+
+# Try Auto-Login
+if try_auto_login():
+    st.success(f"Welcome back, {st.session_state['user']}!")
+
 def login_page():
     st.title("🐞 Internal QA Issue Tracker")
     
@@ -24,18 +34,17 @@ def login_page():
         password = st.text_input("Password", type="password", key="login_pass")
         
         if st.button("Login"):
-            user, error = login_user(username, password)
+            user, error = login_user(username, password, cookie_manager)
             if user:
                 st.session_state["logged_in"] = True
                 st.session_state["user"] = user['username']
                 st.session_state["role"] = user['role']
                 st.success("Logged in successfully!")
+                time.sleep(0.5) # Give cookie a moment
                 st.rerun()
             else:
                 st.error(error)
-        
 
-                
     with tab2:
         st.subheader("Create Account")
         new_user = st.text_input("Username", key="new_user")
@@ -46,7 +55,7 @@ def login_page():
             if new_user and new_pass:
                 success, msg = register_user(new_user, new_pass, role)
                 if success:
-                    st.success("Account created! Please log in.")
+                    st.success(msg)
                 else:
                     st.error(msg)
             else:
@@ -67,8 +76,18 @@ def main():
     st.sidebar.page_link("pages/issue_detail.py", label="Issue Details", icon="📄")
     
     st.sidebar.divider()
+    st.sidebar.caption("Design Updates")
+    st.sidebar.page_link("pages/design_dashboard.py", label="Design Dashboard", icon="🎨")
+    st.sidebar.page_link("pages/submit_design.py", label="Submit Design", icon="🖌️")
+    
+    # Admin Panel Link if Admin
+    st.sidebar.divider()
+    if st.session_state.get("role") == "Admin":
+         st.sidebar.page_link("pages/admin_panel.py", label="Admin Panel", icon="🛡️")
+
+    st.sidebar.divider()
     if st.sidebar.button("Logout"):
-        logout()
+        logout(cookie_manager)
 
     st.title("Welcome to the QA Tracker")
     st.markdown("""

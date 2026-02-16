@@ -9,6 +9,9 @@ from auto_tests import run_diagnostics
 
 st.set_page_config(page_title="Submit Issue", page_icon="📝", layout="wide")
 
+from auth import try_auto_login
+try_auto_login()
+
 if "logged_in" not in st.session_state or not st.session_state["logged_in"]:
     st.warning("Please log in to access this page.")
     st.stop()

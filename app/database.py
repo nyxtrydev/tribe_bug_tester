@@ -103,6 +103,75 @@ def init_db():
         print("Super Admin updated.")
 
     conn.commit()
+    # conn.close() - Removed to keep connection open for next table
+
+    # Design Requests Table
+    c.execute('''CREATE TABLE IF NOT EXISTS design_requests (
+                    id TEXT PRIMARY KEY,
+                    submitter TEXT NOT NULL,
+                    screen_name TEXT,
+                    design_references TEXT,
+                    notes TEXT,
+                    priority TEXT,
+                    status TEXT DEFAULT 'Open',
+                    created_at TIMESTAMP,
+                    updated_at TIMESTAMP,
+                    file_paths TEXT,
+                    reference_img_paths TEXT
+                )''')
+    
+    # Migration for reference_img_paths
+    try:
+        c.execute("ALTER TABLE design_requests ADD COLUMN reference_img_paths TEXT")
+        print("Migrated design_requests table with reference_img_paths column.")
+    except sqlite3.OperationalError:
+        pass 
+
+    conn.commit()
+    # conn.close() - Removed to keep connection open for next table
+
+    conn.close()
+
+
+# --- Design Requests ---
+def create_design_request(data):
+    conn = get_connection()
+    c = conn.cursor()
+    c.execute('''INSERT INTO design_requests (id, submitter, screen_name, design_references, notes, 
+                                              priority, status, created_at, updated_at, file_paths, reference_img_paths)
+                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)''',
+              (data['id'], data['submitter'], data['screen_name'], data['design_references'], 
+               data['notes'], data['priority'], 'Open', datetime.datetime.now(), datetime.datetime.now(), 
+               data.get('file_paths'), data.get('reference_img_paths')))
+    conn.commit()
+    conn.close()
+
+def get_all_design_requests():
+    conn = get_connection()
+    reqs = conn.execute("SELECT * FROM design_requests ORDER BY created_at DESC").fetchall()
+    conn.close()
+    return reqs
+
+def get_design_request_by_id(req_id):
+    conn = get_connection()
+    req = conn.execute("SELECT * FROM design_requests WHERE id = ?", (req_id,)).fetchone()
+    conn.close()
+    return req
+
+def update_design_request_status(req_id, new_status):
+    conn = get_connection()
+    conn.execute("UPDATE design_requests SET status = ?, updated_at = ? WHERE id = ?", 
+                 (new_status, datetime.datetime.now(), req_id))
+    conn.commit()
+    conn.close()
+
+def update_design_request_details(req_id, notes, priority, file_paths, reference_img_paths):
+    conn = get_connection()
+    conn.execute('''UPDATE design_requests 
+                    SET notes = ?, priority = ?, file_paths = ?, reference_img_paths = ?, updated_at = ? 
+                    WHERE id = ?''', 
+                 (notes, priority, file_paths, reference_img_paths, datetime.datetime.now(), req_id))
+    conn.commit()
     conn.close()
 
 # --- Issues ---
