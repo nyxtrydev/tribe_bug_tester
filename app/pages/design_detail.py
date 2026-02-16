@@ -3,7 +3,7 @@ import os
 from database import get_design_request_by_id, update_design_request_status, update_design_request_details
 from auth import try_auto_login
 
-st.set_page_config(page_title="Design Request Details", page_icon="🎨", layout="wide")
+st.set_page_config(page_title="Design Request Details", page_icon="🎨", layout="wide", initial_sidebar_state="expanded")
 
 try_auto_login()
 

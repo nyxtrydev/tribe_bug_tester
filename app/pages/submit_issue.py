@@ -7,7 +7,7 @@ import datetime
 from database import create_issue, save_auto_test_results, get_recent_test_credentials
 from auto_tests import run_diagnostics
 
-st.set_page_config(page_title="Submit Issue", page_icon="📝", layout="wide")
+st.set_page_config(page_title="Submit Issue", page_icon="📝", layout="wide", initial_sidebar_state="expanded")
 
 from auth import try_auto_login
 try_auto_login()

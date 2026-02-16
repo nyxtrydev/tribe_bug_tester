@@ -5,7 +5,7 @@ import datetime
 from database import create_design_request
 from auth import try_auto_login
 
-st.set_page_config(page_title="Submit Design Update", page_icon="🎨", layout="wide")
+st.set_page_config(page_title="Submit Design Request", page_icon="🖌️", layout="wide", initial_sidebar_state="expanded")
 
 try_auto_login()
 

@@ -4,7 +4,7 @@ from database import get_issue_by_id, get_auto_test_results, add_comment, get_co
 from auto_tests import run_diagnostics
 
 
-st.set_page_config(page_title="Issue Details", page_icon="📄", layout="wide")
+st.set_page_config(page_title="Issue Details", page_icon="📄", layout="wide", initial_sidebar_state="expanded")
 
 
 from auth import try_auto_login

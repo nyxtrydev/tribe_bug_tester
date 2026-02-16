@@ -52,10 +52,30 @@ def try_auto_login():
 def apply_custom_style():
     st.markdown("""
         <style>
-            #MainMenu {visibility: hidden;}
-            footer {visibility: hidden;}
-            header {visibility: hidden;}
-            [data-testid="stDecoration"] {visibility: hidden;}
+            /* Hide Streamlit Toolbar items (Menu, Share, etc.) */
+            div[data-testid="stToolbar"] {
+                display: none !important;
+            }
+            
+            /* Hide the decoration line at the top */
+            div[data-testid="stDecoration"] {
+                display: none !important;
+            }
+            
+            /* Hide the footer */
+            footer {
+                display: none !important;
+            }
+            
+            /* Ensure the sidebar toggle (hamburger) is visible and accessible */
+            button[kind="header"] {
+                visibility: visible !important;
+            }
+            
+            /* Make sure sidebar itself is not hidden */
+            section[data-testid="stSidebar"] {
+                visibility: visible !important;
+            }
         </style>
         """, unsafe_allow_html=True)
 

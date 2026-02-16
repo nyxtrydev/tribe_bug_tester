@@ -3,7 +3,7 @@ import pandas as pd
 from database import get_all_issues, delete_issue
 from auth import try_auto_login
 
-st.set_page_config(page_title="Dashboard", page_icon="📊", layout="wide")
+st.set_page_config(page_title="Dashboard", page_icon="📊", layout="wide", initial_sidebar_state="expanded")
 
 try_auto_login()
 

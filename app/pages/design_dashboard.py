@@ -3,7 +3,7 @@ import pandas as pd
 from database import get_all_design_requests, delete_design_request
 from auth import try_auto_login
 
-st.set_page_config(page_title="Design Dashboard", page_icon="🎨", layout="wide")
+st.set_page_config(page_title="Design Dashboard", page_icon="🎨", layout="wide", initial_sidebar_state="expanded")
 
 try_auto_login()
 

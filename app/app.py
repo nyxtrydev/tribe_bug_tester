@@ -3,7 +3,7 @@ import time
 from database import init_db
 from auth import login_user, logout, register_user, get_manager, get_user, try_auto_login
 
-st.set_page_config(page_title="QA Issue Tracker", page_icon="🐞", layout="wide")
+st.set_page_config(page_title="QA Issue Tracker", page_icon="🐞", layout="wide", initial_sidebar_state="expanded")
 
 # Initialize DB
 init_db()

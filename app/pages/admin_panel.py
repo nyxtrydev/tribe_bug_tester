@@ -2,7 +2,7 @@ import streamlit as st
 from database import get_pending_users, approve_user
 from auth import admin_create_user, try_auto_login
 
-st.set_page_config(page_title="Admin Panel", page_icon="🛡️", layout="wide")
+st.set_page_config(page_title="Admin Panel", page_icon="🛡️", layout="wide", initial_sidebar_state="expanded")
 
 try_auto_login()
 
