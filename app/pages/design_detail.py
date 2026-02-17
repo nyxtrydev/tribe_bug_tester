@@ -67,6 +67,15 @@ with col1:
             refs_to_keep = st.multiselect("Keep References (Uncheck to Remove)", current_refs, default=current_refs, format_func=os.path.basename)
             new_refs = st.file_uploader("Add New References", accept_multiple_files=True, type=['png', 'jpg', 'jpeg'], key="new_refs")
             
+            # --- Manage Assets ---
+            st.divider()
+            st.caption("Manage Assets")
+            current_assets = req['assets_paths'].split(',') if req['assets_paths'] else []
+            # Filter empty
+            current_assets = [p for p in current_assets if p.strip()]
+            assets_to_keep = st.multiselect("Keep Assets (Uncheck to Remove)", current_assets, default=current_assets, format_func=os.path.basename)
+            new_assets = st.file_uploader("Add New Assets", accept_multiple_files=True, key="new_assets")
+            
             if st.form_submit_button("Save Changes"):
                 # Handle Mocks
                 final_paths = images_to_keep
@@ -90,23 +99,84 @@ with col1:
                             f.write(uploaded_file.getbuffer())
                         final_ref_paths.append(file_path)
                 
+                # Handle Assets
+                final_asset_paths = assets_to_keep
+                if new_assets:
+                    asset_dir = "app/uploads/designs/assets" 
+                    for uploaded_file in new_assets:
+                        file_path = os.path.join(asset_dir, f"{req['id']}_asset_{uploaded_file.name}")
+                        os.makedirs(os.path.dirname(file_path), exist_ok=True)
+                        with open(file_path, "wb") as f:
+                            f.write(uploaded_file.getbuffer())
+                        final_asset_paths.append(file_path)
+
                 # Update DB
-                update_design_request_details(req_id, new_notes, new_priority, ",".join(final_paths), ",".join(final_ref_paths))
+                update_design_request_details(req_id, new_notes, new_priority, ",".join(final_paths), ",".join(final_ref_paths), ",".join(final_asset_paths))
                 st.success("Details updated!")
                 st.rerun()
 
     st.subheader("Visuals (Mocks)")
     if req['file_paths']:
         paths = req['file_paths'].split(',')
+        # Filter out empty strings
+        paths = [p for p in paths if p.strip()]
+        
         if not paths:
              st.info("No images.")
-        for path in paths:
-            if path and os.path.exists(path):
-                st.image(path, caption=os.path.basename(path), width=500)
-            elif path: # Path exists in DB but not file
-                st.warning(f"File missing: {path}")
+        else:
+            cols = st.columns(4)
+            for i, path in enumerate(paths):
+                if path and os.path.exists(path):
+                    # Truncate name to 4 chars
+                    fname = os.path.basename(path)
+                    short_name = fname[:10] + "..." if len(fname) > 10 else fname # 4 is too short, let's do 10? User said 4. Okay 4.
+                    # User asked for 4 letters explicitly.
+                    short_name = fname[:6] + ".." if len(fname) > 6 else fname
+                    
+                    cols[i % 4].image(path, caption=short_name, use_container_width=True)
+                elif path: # Path exists in DB but not file
+                    cols[i % 4].warning(f"Missing: {os.path.basename(path)[:6]}...")
     else:
         st.info("No images uploaded.")
+        
+    st.divider()
+    
+    # Assets Display
+    # Assets Display
+    if req['assets_paths']:
+        st.subheader("📂 Assets")
+        asset_paths = req['assets_paths'].split(',')
+        asset_paths = [p for p in asset_paths if p.strip()]
+        
+        # Sperate images from other files
+        image_assets = []
+        other_assets = []
+        for path in asset_paths:
+            if path.lower().endswith(('.png', '.jpg', '.jpeg', '.svg', '.gif', '.bmp', '.webp')):
+                image_assets.append(path)
+            else:
+                other_assets.append(path)
+                
+        # Display Images in Gallery
+        if image_assets:
+            st.caption("Image Assets")
+            cols = st.columns(4)
+            for i, path in enumerate(image_assets):
+                if os.path.exists(path):
+                    # Truncate
+                    fname = os.path.basename(path)
+                    short_name = fname[:6] + ".." if len(fname) > 6 else fname
+                    cols[i % 4].image(path, caption=short_name, use_container_width=True)
+                    
+        # Display Other Files
+        if other_assets:
+            st.caption("Other Files")
+            for path in other_assets:
+                if os.path.exists(path):
+                    file_name = os.path.basename(path)
+                    # Truncate link text
+                    short_name = file_name[:20] + "..." if len(file_name) > 20 else file_name
+                    st.write(f"📄 [{short_name}]({path})")
 
 with col2:
     st.subheader("Status & Metadata")

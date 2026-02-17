@@ -33,6 +33,8 @@ with st.form("design_form", clear_on_submit=True):
     uploaded_files = st.file_uploader("Upload Design Mocks/Screenshots", accept_multiple_files=True, type=['png', 'jpg', 'jpeg'], key="mocks")
     reference_files = st.file_uploader("Upload Reference Images (Optional)", accept_multiple_files=True, type=['png', 'jpg', 'jpeg'], key="refs")
     
+    extra_assets = st.file_uploader("Upload Design Assets (Icons, Fonts, SVGs)", accept_multiple_files=True, key="assets")
+
     submitted = st.form_submit_button("Submit Request")
     
     if submitted:
@@ -64,6 +66,18 @@ with st.form("design_form", clear_on_submit=True):
                     with open(file_path, "wb") as f:
                         f.write(uploaded_file.getbuffer())
                     saved_ref_paths.append(file_path)
+
+            # Save Assets
+            saved_asset_paths = []
+            if extra_assets:
+                upload_dir = "app/uploads/designs/assets" 
+                for uploaded_file in extra_assets:
+                    file_path = os.path.join(upload_dir, f"{req_id}_asset_{uploaded_file.name}")
+                    # Ensure directory exists
+                    os.makedirs(os.path.dirname(file_path), exist_ok=True)
+                    with open(file_path, "wb") as f:
+                        f.write(uploaded_file.getbuffer())
+                    saved_asset_paths.append(file_path)
             
             # Create Design Request Data
             design_data = {
@@ -74,7 +88,8 @@ with st.form("design_form", clear_on_submit=True):
                 "notes": notes,
                 "priority": priority,
                 "file_paths": ",".join(saved_file_paths),
-                "reference_img_paths": ",".join(saved_ref_paths)
+                "reference_img_paths": ",".join(saved_ref_paths),
+                "assets_paths": ",".join(saved_asset_paths)
             }
             
             create_design_request(design_data)

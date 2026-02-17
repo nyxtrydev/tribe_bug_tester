@@ -3,14 +3,197 @@ import os
 import datetime
 import bcrypt
 
-DB_FILE = "app/database.db"
+# Use absolute path to ensure consistency
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+DB_FILE = os.path.join(BASE_DIR, "database.db")
 
 def get_connection():
     conn = sqlite3.connect(DB_FILE, check_same_thread=False)
     conn.row_factory = sqlite3.Row
     return conn
 
+def check_and_fix_design_requests_schema():
+    """Ensure assets_paths column exists before insertion."""
+    conn = get_connection()
+    try:
+        # Check existing columns
+        range_info = conn.execute("PRAGMA table_info(design_requests)").fetchall()
+        columns = [col[1] for col in range_info]
+        if 'assets_paths' not in columns:
+            print("Self-healing: Adding missing 'assets_paths' column...")
+            conn.execute("ALTER TABLE design_requests ADD COLUMN assets_paths TEXT")
+            conn.commit()
+    except Exception as e:
+        print(f"Self-healing error: {e}")
+    finally:
+        conn.close()
+
 def init_db():
+    conn = get_connection()
+    c = conn.cursor()
+
+    # Users Table
+    c.execute('''CREATE TABLE IF NOT EXISTS users (
+                    username TEXT PRIMARY KEY,
+                    password_hash TEXT NOT NULL,
+                    role TEXT NOT NULL,
+                    is_approved BOOLEAN DEFAULT 0
+                )''')
+
+    # Migration for is_approved
+    try:
+        c.execute("ALTER TABLE users ADD COLUMN is_approved BOOLEAN DEFAULT 0")
+        print("Migrated users table with is_approved column.")
+    except sqlite3.OperationalError:
+        pass # Column likely exists
+
+    # Issues Table
+    c.execute('''CREATE TABLE IF NOT EXISTS issues (
+                    id TEXT PRIMARY KEY,
+                    submitter TEXT NOT NULL,
+                    account_type TEXT,
+                    issue_type TEXT,
+                    screen_name TEXT,
+                    title TEXT,
+                    description TEXT,
+                    steps_to_reproduce TEXT,
+                    expected_result TEXT,
+                    actual_result TEXT,
+                    severity TEXT,
+                    status TEXT DEFAULT 'Open',
+                    created_at TIMESTAMP,
+                    updated_at TIMESTAMP,
+                    file_paths TEXT,
+                    test_username TEXT,
+                    test_password TEXT,
+                    test_email TEXT
+                )''')
+
+    # Migration for new columns (safe-ish for dev)
+    try:
+        c.execute("ALTER TABLE issues ADD COLUMN test_username TEXT")
+        c.execute("ALTER TABLE issues ADD COLUMN test_password TEXT")
+        c.execute("ALTER TABLE issues ADD COLUMN test_email TEXT")
+        print("Migrated issues table with test credentials columns.")
+    except sqlite3.OperationalError:
+        pass # Columns likely exist
+
+    # Comments Table
+    c.execute('''CREATE TABLE IF NOT EXISTS comments (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    issue_id TEXT,
+                    username TEXT,
+                    comment TEXT,
+                    created_at TIMESTAMP,
+                    FOREIGN KEY(issue_id) REFERENCES issues(id)
+                )''')
+
+    # Auto Test Results Table
+    c.execute('''CREATE TABLE IF NOT EXISTS auto_test_results (
+                    issue_id TEXT PRIMARY KEY,
+                    duplicate_score REAL,
+                    missing_info TEXT,
+                    suggested_severity TEXT,
+                    qa_score INTEGER,
+                    FOREIGN KEY(issue_id) REFERENCES issues(id)
+                )''')
+
+
+    # Create Super Admin (abhiraman)
+    c.execute("SELECT * FROM users WHERE username = 'abhiraman'")
+    row = c.fetchone()
+    if not row:
+        password = "Tribe#123#@".encode('utf-8')
+        hashed = bcrypt.hashpw(password, bcrypt.gensalt()).decode('utf-8')
+        c.execute("INSERT INTO users (username, password_hash, role, is_approved) VALUES (?, ?, ?, ?)", 
+                  ("abhiraman", hashed, "Admin", 1))
+        print("Super Admin created: abhiraman")
+    else:
+        password = "Tribe#123#@".encode('utf-8')
+        hashed = bcrypt.hashpw(password, bcrypt.gensalt()).decode('utf-8')
+        c.execute("UPDATE users SET is_approved = 1, password_hash = ? WHERE username = 'abhiraman'", (hashed,))
+        print("Super Admin updated.")
+
+    conn.commit()
+
+    # Design Requests Table
+    c.execute('''CREATE TABLE IF NOT EXISTS design_requests (
+                    id TEXT PRIMARY KEY,
+                    submitter TEXT NOT NULL,
+                    screen_name TEXT,
+                    design_references TEXT,
+                    notes TEXT,
+                    priority TEXT,
+                    status TEXT DEFAULT 'Open',
+                    created_at TIMESTAMP,
+                    updated_at TIMESTAMP,
+                    file_paths TEXT,
+                    reference_img_paths TEXT,
+                    assets_paths TEXT
+                )''')
+    
+    # Migration for reference_img_paths and assets_paths
+    try:
+        c.execute("ALTER TABLE design_requests ADD COLUMN reference_img_paths TEXT")
+    except sqlite3.OperationalError:
+        pass 
+        
+    try:
+        c.execute("ALTER TABLE design_requests ADD COLUMN assets_paths TEXT")
+        print("Migrated design_requests table with assets_paths column.")
+    except sqlite3.OperationalError:
+        pass 
+
+    conn.commit()
+
+    # Requirements Table
+    c.execute('''CREATE TABLE IF NOT EXISTS requirements (
+                    id TEXT PRIMARY KEY,
+                    submitter TEXT NOT NULL,
+                    title TEXT,
+                    requirement_type TEXT,
+                    remarks TEXT,
+                    status TEXT DEFAULT 'Open',
+                    created_at TIMESTAMP,
+                    updated_at TIMESTAMP,
+                    current_design_path TEXT,
+                    reference_img_path TEXT,
+                    assets_paths TEXT
+                )''')
+
+    # Migration for assets_paths
+    try:
+        c.execute("ALTER TABLE requirements ADD COLUMN assets_paths TEXT")
+        print("Migrated requirements table with assets_paths column.")
+    except sqlite3.OperationalError:
+        pass
+
+    # Requirement Comments Table
+    c.execute('''CREATE TABLE IF NOT EXISTS requirement_comments (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    req_id TEXT,
+                    username TEXT,
+                    comment TEXT,
+                    created_at TIMESTAMP,
+                    FOREIGN KEY(req_id) REFERENCES requirements(id)
+                )''')
+
+    conn.commit()
+    conn.close()
+def create_design_request(data):
+    # Ensure schema is correct before insert
+    check_and_fix_design_requests_schema()
+    
+    conn = get_connection()
+    c = conn.cursor()
+    c.execute('''INSERT INTO design_requests (id, submitter, screen_name, design_references, notes, 
+                                              priority, status, created_at, updated_at, file_paths, reference_img_paths, assets_paths)
+                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)''',
+              (data['id'], data['submitter'], data['screen_name'], data['design_references'], 
+               data['notes'], data['priority'], 'Open', datetime.datetime.now(), datetime.datetime.now(), 
+               data.get('file_paths'), data.get('reference_img_paths'), data.get('assets_paths')))
+    conn.commit()
+    conn.close()
     conn = get_connection()
     c = conn.cursor()
 
@@ -114,13 +297,19 @@ def init_db():
                     created_at TIMESTAMP,
                     updated_at TIMESTAMP,
                     file_paths TEXT,
-                    reference_img_paths TEXT
+                    reference_img_paths TEXT,
+                    assets_paths TEXT
                 )''')
     
-    # Migration for reference_img_paths
+    # Migration for reference_img_paths and assets_paths
     try:
         c.execute("ALTER TABLE design_requests ADD COLUMN reference_img_paths TEXT")
-        print("Migrated design_requests table with reference_img_paths column.")
+    except sqlite3.OperationalError:
+        pass 
+        
+    try:
+        c.execute("ALTER TABLE design_requests ADD COLUMN assets_paths TEXT")
+        print("Migrated design_requests table with assets_paths column.")
     except sqlite3.OperationalError:
         pass 
 
@@ -164,14 +353,17 @@ def init_db():
 
 # --- Design Requests ---
 def create_design_request(data):
+    # Ensure schema is correct before insert - Self Healing
+    check_and_fix_design_requests_schema()
+    
     conn = get_connection()
     c = conn.cursor()
     c.execute('''INSERT INTO design_requests (id, submitter, screen_name, design_references, notes, 
-                                              priority, status, created_at, updated_at, file_paths, reference_img_paths)
-                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)''',
+                                              priority, status, created_at, updated_at, file_paths, reference_img_paths, assets_paths)
+                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)''',
               (data['id'], data['submitter'], data['screen_name'], data['design_references'], 
                data['notes'], data['priority'], 'Open', datetime.datetime.now(), datetime.datetime.now(), 
-               data.get('file_paths'), data.get('reference_img_paths')))
+               data.get('file_paths'), data.get('reference_img_paths'), data.get('assets_paths')))
     conn.commit()
     conn.close()
 
@@ -194,12 +386,19 @@ def update_design_request_status(req_id, new_status):
     conn.commit()
     conn.close()
 
-def update_design_request_details(req_id, notes, priority, file_paths, reference_img_paths):
+def update_design_request_details(req_id, notes, priority, file_paths, reference_img_paths, assets_paths=None):
     conn = get_connection()
-    conn.execute('''UPDATE design_requests 
-                    SET notes = ?, priority = ?, file_paths = ?, reference_img_paths = ?, updated_at = ? 
-                    WHERE id = ?''', 
-                 (notes, priority, file_paths, reference_img_paths, datetime.datetime.now(), req_id))
+    
+    if assets_paths is not None:
+        conn.execute('''UPDATE design_requests 
+                        SET notes = ?, priority = ?, file_paths = ?, reference_img_paths = ?, assets_paths = ?, updated_at = ? 
+                        WHERE id = ?''', 
+                     (notes, priority, file_paths, reference_img_paths, assets_paths, datetime.datetime.now(), req_id))
+    else:
+        conn.execute('''UPDATE design_requests 
+                        SET notes = ?, priority = ?, file_paths = ?, reference_img_paths = ?, updated_at = ? 
+                        WHERE id = ?''', 
+                     (notes, priority, file_paths, reference_img_paths, datetime.datetime.now(), req_id))
     conn.commit()
     conn.close()
 
