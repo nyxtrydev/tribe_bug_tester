@@ -29,5 +29,5 @@ def render_sidebar():
 
     st.sidebar.divider()
     if st.sidebar.button("Logout"):
-        cookie_manager = get_manager()
+        cookie_manager = get_manager(key="logout")
         logout(cookie_manager)

@@ -70,7 +70,16 @@ with col1:
             # --- Manage Assets ---
             st.divider()
             st.caption("Manage Assets")
-            current_assets = req['assets_paths'].split(',') if req['assets_paths'] else []
+            
+            raw_edit_assets = req['assets_paths'] if req['assets_paths'] else ''
+            
+            if raw_edit_assets and '|' in raw_edit_assets:
+                current_assets = raw_edit_assets.split('|')
+            elif raw_edit_assets and os.path.exists(raw_edit_assets.strip()):
+                current_assets = [raw_edit_assets.strip()]
+            else:
+                current_assets = raw_edit_assets.split(',') if raw_edit_assets else []
+                
             # Filter empty
             current_assets = [p for p in current_assets if p.strip()]
             assets_to_keep = st.multiselect("Keep Assets (Uncheck to Remove)", current_assets, default=current_assets, format_func=os.path.basename)
@@ -104,14 +113,16 @@ with col1:
                 if new_assets:
                     asset_dir = "app/uploads/designs/assets" 
                     for uploaded_file in new_assets:
-                        file_path = os.path.join(asset_dir, f"{req['id']}_asset_{uploaded_file.name}")
+                        # Sanitize
+                        safe_name = uploaded_file.name.replace(",", "_").replace("|", "_")
+                        file_path = os.path.join(asset_dir, f"{req['id']}_asset_{safe_name}")
                         os.makedirs(os.path.dirname(file_path), exist_ok=True)
                         with open(file_path, "wb") as f:
                             f.write(uploaded_file.getbuffer())
                         final_asset_paths.append(file_path)
 
                 # Update DB
-                update_design_request_details(req_id, new_notes, new_priority, ",".join(final_paths), ",".join(final_ref_paths), ",".join(final_asset_paths))
+                update_design_request_details(req_id, new_notes, new_priority, ",".join(final_paths), ",".join(final_ref_paths), "|".join(final_asset_paths))
                 st.success("Details updated!")
                 st.rerun()
 
@@ -143,9 +154,22 @@ with col1:
     
     # Assets Display
     # Assets Display
+    # Assets Display
+    # Assets Display
     if req['assets_paths']:
         st.subheader("📂 Assets")
-        asset_paths = req['assets_paths'].split(',')
+        
+        raw_assets = req['assets_paths']
+        
+        if '|' in raw_assets:
+             asset_paths = raw_assets.split('|')
+        elif os.path.exists(raw_assets.strip()):
+             # It's a single file, arguably with commas in name
+             asset_paths = [raw_assets.strip()]
+        else:
+             # Fallback: Try comma split (legacy)
+             asset_paths = raw_assets.split(',')
+             
         asset_paths = [p for p in asset_paths if p.strip()]
         
         # Sperate images from other files
@@ -156,6 +180,7 @@ with col1:
                 image_assets.append(path)
             else:
                 other_assets.append(path)
+
                 
         # Display Images in Gallery
         if image_assets:
