@@ -7,6 +7,9 @@ st.set_page_config(page_title="Design Dashboard", page_icon="🎨", layout="wide
 
 try_auto_login()
 
+from navigation import render_sidebar
+render_sidebar()
+
 if "logged_in" not in st.session_state or not st.session_state["logged_in"]:
     st.warning("Please log in to access this page.")
     st.stop()

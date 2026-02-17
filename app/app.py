@@ -67,27 +67,8 @@ def main():
         return
 
     # Sidebar
-    st.sidebar.title(f"User: {st.session_state['user']}")
-    st.sidebar.caption(f"Role: {st.session_state['role']}")
-    
-    st.sidebar.page_link("app.py", label="Home", icon="🏠")
-    st.sidebar.page_link("pages/dashboard.py", label="Dashboard", icon="📊")
-    st.sidebar.page_link("pages/submit_issue.py", label="Submit Issue", icon="📝")
-    # st.sidebar.page_link("pages/issue_detail.py", label="Issue Details", icon="📄")
-    
-    st.sidebar.divider()
-    st.sidebar.caption("Design Updates")
-    st.sidebar.page_link("pages/design_dashboard.py", label="Design Dashboard", icon="🎨")
-    st.sidebar.page_link("pages/submit_design.py", label="Submit Design", icon="🖌️")
-    
-    # Admin Panel Link if Admin
-    st.sidebar.divider()
-    if st.session_state.get("role") == "Admin":
-         st.sidebar.page_link("pages/admin_panel.py", label="Admin Panel", icon="🛡️")
-
-    st.sidebar.divider()
-    if st.sidebar.button("Logout"):
-        logout(cookie_manager)
+    from navigation import render_sidebar
+    render_sidebar()
 
     st.title("Welcome to the QA Tracker")
     st.markdown("""

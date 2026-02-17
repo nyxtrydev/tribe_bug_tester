@@ -70,6 +70,11 @@ def apply_custom_style():
                 display: none !important; 
             }
             
+            /* Hide the default Streamlit sidebar navigation (auto-generated) */
+            [data-testid="stSidebarNav"] {
+                display: none !important;
+            }
+            
             /* Reset header to be transparent and visible so buttons show */
             header[data-testid="stHeader"] {
                 background: rgba(0,0,0,0) !important;

@@ -125,6 +125,32 @@ def init_db():
         pass 
 
     conn.commit()
+
+    # Requirements Table
+    c.execute('''CREATE TABLE IF NOT EXISTS requirements (
+                    id TEXT PRIMARY KEY,
+                    submitter TEXT NOT NULL,
+                    title TEXT,
+                    requirement_type TEXT,
+                    remarks TEXT,
+                    status TEXT DEFAULT 'Open',
+                    created_at TIMESTAMP,
+                    updated_at TIMESTAMP,
+                    current_design_path TEXT,
+                    reference_img_path TEXT
+                )''')
+
+    # Requirement Comments Table
+    c.execute('''CREATE TABLE IF NOT EXISTS requirement_comments (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    req_id TEXT,
+                    username TEXT,
+                    comment TEXT,
+                    created_at TIMESTAMP,
+                    FOREIGN KEY(req_id) REFERENCES requirements(id)
+                )''')
+
+    conn.commit()
     conn.close()
 
 
@@ -302,3 +328,63 @@ def get_recent_test_credentials():
     creds = conn.execute(query).fetchall()
     conn.close()
     return creds
+
+# --- Requirements ---
+def add_requirement_comment(req_id, username, comment):
+    conn = get_connection()
+    conn.execute("INSERT INTO requirement_comments (req_id, username, comment, created_at) VALUES (?, ?, ?, ?)",
+                 (req_id, username, comment, datetime.datetime.now()))
+    conn.commit()
+    conn.close()
+
+def get_requirement_comments(req_id):
+    conn = get_connection()
+    comments = conn.execute("SELECT * FROM requirement_comments WHERE req_id = ? ORDER BY created_at ASC", (req_id,)).fetchall()
+    conn.close()
+    return comments
+
+def create_requirement(data):
+    conn = get_connection()
+    c = conn.cursor()
+    c.execute('''INSERT INTO requirements (id, submitter, title, requirement_type, remarks, 
+                                           status, created_at, updated_at, current_design_path, reference_img_path)
+                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)''',
+              (data['id'], data['submitter'], data['title'], data['requirement_type'], 
+               data['remarks'], 'Open', datetime.datetime.now(), datetime.datetime.now(), 
+               data.get('current_design_path'), data.get('reference_img_path')))
+    conn.commit()
+    conn.close()
+
+def get_all_requirements():
+    conn = get_connection()
+    reqs = conn.execute("SELECT * FROM requirements ORDER BY created_at DESC").fetchall()
+    conn.close()
+    return reqs
+
+def get_requirement_by_id(req_id):
+    conn = get_connection()
+    req = conn.execute("SELECT * FROM requirements WHERE id = ?", (req_id,)).fetchone()
+    conn.close()
+    return req
+
+def update_requirement_status(req_id, new_status):
+    conn = get_connection()
+    conn.execute("UPDATE requirements SET status = ?, updated_at = ? WHERE id = ?", 
+                 (new_status, datetime.datetime.now(), req_id))
+    conn.commit()
+    conn.close()
+
+def update_requirement_details(req_id, remarks, req_type, current_design, reference_img):
+    conn = get_connection()
+    conn.execute('''UPDATE requirements 
+                    SET remarks = ?, requirement_type = ?, current_design_path = ?, reference_img_path = ?, updated_at = ? 
+                    WHERE id = ?''', 
+                 (remarks, req_type, current_design, reference_img, datetime.datetime.now(), req_id))
+    conn.commit()
+    conn.close()
+
+def delete_requirement(req_id):
+    conn = get_connection()
+    conn.execute("DELETE FROM requirements WHERE id = ?", (req_id,))
+    conn.commit()
+    conn.close()
