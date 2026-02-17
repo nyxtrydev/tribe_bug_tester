@@ -73,7 +73,7 @@ def main():
     st.sidebar.page_link("app.py", label="Home", icon="🏠")
     st.sidebar.page_link("pages/dashboard.py", label="Dashboard", icon="📊")
     st.sidebar.page_link("pages/submit_issue.py", label="Submit Issue", icon="📝")
-    st.sidebar.page_link("pages/issue_detail.py", label="Issue Details", icon="📄")
+    # st.sidebar.page_link("pages/issue_detail.py", label="Issue Details", icon="📄")
     
     st.sidebar.divider()
     st.sidebar.caption("Design Updates")
