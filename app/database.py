@@ -137,8 +137,16 @@ def init_db():
                     created_at TIMESTAMP,
                     updated_at TIMESTAMP,
                     current_design_path TEXT,
-                    reference_img_path TEXT
+                    reference_img_path TEXT,
+                    assets_paths TEXT
                 )''')
+
+    # Migration for assets_paths
+    try:
+        c.execute("ALTER TABLE requirements ADD COLUMN assets_paths TEXT")
+        print("Migrated requirements table with assets_paths column.")
+    except sqlite3.OperationalError:
+        pass
 
     # Requirement Comments Table
     c.execute('''CREATE TABLE IF NOT EXISTS requirement_comments (
@@ -347,11 +355,11 @@ def create_requirement(data):
     conn = get_connection()
     c = conn.cursor()
     c.execute('''INSERT INTO requirements (id, submitter, title, requirement_type, remarks, 
-                                           status, created_at, updated_at, current_design_path, reference_img_path)
-                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)''',
+                                           status, created_at, updated_at, current_design_path, reference_img_path, assets_paths)
+                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)''',
               (data['id'], data['submitter'], data['title'], data['requirement_type'], 
                data['remarks'], 'Open', datetime.datetime.now(), datetime.datetime.now(), 
-               data.get('current_design_path'), data.get('reference_img_path')))
+               data.get('current_design_path'), data.get('reference_img_path'), data.get('assets_paths')))
     conn.commit()
     conn.close()
 
@@ -374,9 +382,21 @@ def update_requirement_status(req_id, new_status):
     conn.commit()
     conn.close()
 
-def update_requirement_details(req_id, remarks, req_type, current_design, reference_img):
+def update_requirement_details(req_id, remarks, req_type, current_design, reference_img, assets_paths=None):
     conn = get_connection()
-    conn.execute('''UPDATE requirements 
+    # Note: If assets_paths is None, we might not want to overwrite it if we were doing a partial update, 
+    # but here we assume the form sends current state. 
+    # However, to be safe, if we are just adding appending, we would handle it differently. 
+    # For now, let's assume we pass the full string or None to keep existing? 
+    # Actually, simpler to just always update it if provided.
+    
+    if assets_paths is not None:
+         conn.execute('''UPDATE requirements 
+                    SET remarks = ?, requirement_type = ?, current_design_path = ?, reference_img_path = ?, assets_paths = ?, updated_at = ? 
+                    WHERE id = ?''', 
+                 (remarks, req_type, current_design, reference_img, assets_paths, datetime.datetime.now(), req_id))
+    else:
+        conn.execute('''UPDATE requirements 
                     SET remarks = ?, requirement_type = ?, current_design_path = ?, reference_img_path = ?, updated_at = ? 
                     WHERE id = ?''', 
                  (remarks, req_type, current_design, reference_img, datetime.datetime.now(), req_id))

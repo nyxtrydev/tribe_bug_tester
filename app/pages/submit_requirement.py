@@ -29,6 +29,8 @@ with st.form("requirement_form"):
     with col2:
         reference_img = st.file_uploader("Upload Reference Image", type=['png', 'jpg', 'jpeg'], key="ref_img")
     
+    assets_files = st.file_uploader("Upload Design Assets (Icons, Fonts, SVGs, etc.)", accept_multiple_files=True, key="assets")
+    
     submitted = st.form_submit_button("Submit Requirement")
     
     if submitted:
@@ -57,6 +59,17 @@ with st.form("requirement_form"):
                     f.write(reference_img.getbuffer())
                 saved_ref_path = file_path
             
+            # Save Assets
+            saved_asset_paths = []
+            if assets_files:
+                upload_dir = "app/uploads/requirements/assets"
+                os.makedirs(upload_dir, exist_ok=True)
+                for asset in assets_files:
+                    file_path = os.path.join(upload_dir, f"{req_id}_asset_{asset.name}")
+                    with open(file_path, "wb") as f:
+                        f.write(asset.getbuffer())
+                    saved_asset_paths.append(file_path)
+
             data = {
                 "id": req_id,
                 "submitter": st.session_state['user'],
@@ -64,7 +77,8 @@ with st.form("requirement_form"):
                 "requirement_type": req_type,
                 "remarks": remarks,
                 "current_design_path": saved_current_path,
-                "reference_img_path": saved_ref_path
+                "reference_img_path": saved_ref_path,
+                "assets_paths": ",".join(saved_asset_paths)
             }
             
             create_requirement(data)

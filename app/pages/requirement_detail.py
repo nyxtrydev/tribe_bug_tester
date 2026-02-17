@@ -56,6 +56,20 @@ with col1:
 
     st.divider()
     
+    # Assets Section
+    if req['assets_paths']:
+        st.subheader("📂 Design Assets")
+        asset_paths = req['assets_paths'].split(',')
+        for path in asset_paths:
+            if os.path.exists(path):
+                file_name = os.path.basename(path)
+                st.write(f"📄 [{file_name}]({path})") # Simple link for now, maybe download button later
+                # If image, show it
+                if file_name.lower().endswith(('.png', '.jpg', '.jpeg', '.svg')):
+                     st.image(path, caption=file_name, width=200)
+    
+    st.divider()
+    
     # Chat-like Remarks
     st.subheader("💬 Chat Remarks")
     comments = get_requirement_comments(req_id)
@@ -100,8 +114,25 @@ with col2:
                 new_remarks = st.text_area("Update Remarks", value=req['remarks'])
                 new_type = st.selectbox("Update Type", ["Design Change", "Feature Change", "New Requirement", "Bug Fix", "Other"], index=["Design Change", "Feature Change", "New Requirement", "Bug Fix", "Other"].index(req['requirement_type']))
                 
+                # Manage Assets
+                st.caption("Manage Assets")
+                current_assets = req['assets_paths'].split(',') if req.get('assets_paths') else []
+                assets_to_keep = st.multiselect("Keep Assets (Uncheck to Remove)", current_assets, default=current_assets, format_func=os.path.basename)
+                new_assets = st.file_uploader("Add New Assets", accept_multiple_files=True, key="new_assets_edit")
+
                 if st.form_submit_button("Save Changes"):
-                    update_requirement_details(req_id, new_remarks, new_type, req['current_design_path'], req['reference_img_path'])
+                    # Handle New Assets
+                    final_asset_paths = assets_to_keep
+                    if new_assets:
+                        upload_dir = "app/uploads/requirements/assets"
+                        os.makedirs(upload_dir, exist_ok=True)
+                        for asset in new_assets:
+                            file_path = os.path.join(upload_dir, f"{req_id}_asset_{asset.name}")
+                            with open(file_path, "wb") as f:
+                                f.write(asset.getbuffer())
+                            final_asset_paths.append(file_path)
+                    
+                    update_requirement_details(req_id, new_remarks, new_type, req['current_design_path'], req['reference_img_path'], ",".join(final_asset_paths))
                     st.success("Updated!")
                     st.rerun()
 
