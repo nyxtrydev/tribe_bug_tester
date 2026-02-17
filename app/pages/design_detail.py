@@ -14,6 +14,46 @@ if "logged_in" not in st.session_state or not st.session_state["logged_in"]:
     st.warning("Please log in to access this page.")
     st.stop()
 
+def smart_split_assets(raw_assets):
+    """
+    Splits asset paths string robustly, handling both | and legacy comma separators.
+    Also handles filenames with commas by checking for valid path prefixes.
+    """
+    if not raw_assets:
+        return []
+        
+    # Prefer pipe if present
+    if '|' in raw_assets:
+        return [p.strip() for p in raw_assets.split('|') if p.strip()]
+        
+    # Fallback to smart comma splitting
+    parts = raw_assets.split(',')
+    final_paths = []
+    current_path = ""
+    
+    for p in parts:
+        clean_p = p.strip()
+        # Heuristic: Valid paths in this app start with app/ or app\
+        # Or at least contain "app/"
+        if clean_p.lower().startswith("app/") or clean_p.lower().startswith("app\\") or "app/uploads" in clean_p.replace("\\", "/"):
+            if current_path:
+                final_paths.append(current_path)
+            current_path = clean_p
+        else:
+            # Likely a continuation of previous filename (e.g. "Image, 2026.png" -> " 2026.png")
+            if current_path:
+                current_path += "," + p # Keep original p to preserve potential spacing
+            else:
+                # Edge case: first part doesn't look like a path? 
+                # Maybe it is just a filename without path?
+                # Assume new path
+                current_path = clean_p
+                
+    if current_path:
+        final_paths.append(current_path)
+        
+    return final_paths
+
 if "selected_design_id" not in st.session_state or not st.session_state["selected_design_id"]:
     st.warning("No design request selected.")
     st.stop()
@@ -71,14 +111,8 @@ with col1:
             st.divider()
             st.caption("Manage Assets")
             
-            raw_edit_assets = req['assets_paths'] if req['assets_paths'] else ''
-            
-            if raw_edit_assets and '|' in raw_edit_assets:
-                current_assets = raw_edit_assets.split('|')
-            elif raw_edit_assets and os.path.exists(raw_edit_assets.strip()):
-                current_assets = [raw_edit_assets.strip()]
-            else:
-                current_assets = raw_edit_assets.split(',') if raw_edit_assets else []
+            raw_edit = req['assets_paths'] if req['assets_paths'] else ''
+            current_assets = smart_split_assets(raw_edit)
                 
             # Filter empty
             current_assets = [p for p in current_assets if p.strip()]
@@ -159,17 +193,7 @@ with col1:
     if req['assets_paths']:
         st.subheader("📂 Assets")
         
-        raw_assets = req['assets_paths']
-        
-        if '|' in raw_assets:
-             asset_paths = raw_assets.split('|')
-        elif os.path.exists(raw_assets.strip()):
-             # It's a single file, arguably with commas in name
-             asset_paths = [raw_assets.strip()]
-        else:
-             # Fallback: Try comma split (legacy)
-             asset_paths = raw_assets.split(',')
-             
+        asset_paths = smart_split_assets(req['assets_paths'])
         asset_paths = [p for p in asset_paths if p.strip()]
         
         # Sperate images from other files
